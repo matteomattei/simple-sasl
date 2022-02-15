@@ -13,9 +13,24 @@ module.exports.authenticate = function (params, callback) {
     if (params.method === "plain") {
       let data = Buffer.from(`\0${params.user}\0${params.password}`);
       let token = data.toString("base64");
-      client.write(
-        `AUTH\t1\tPLAIN\tservice=imap\trip=${client.localAddress}\tresp=${token}\n`
-      );
+      let service = params.service ? params.service : "imap";
+      let rip = params.rip ? params.rip : client.remoteAddress;
+      let lip = params.lip ? params.lip : client.localAddress;
+      let cmd = [];
+      cmd.push("AUTH");
+      cmd.push("1");
+      cmd.push("PLAIN");
+      cmd.push(`service=${service}`);
+      cmd.push(`rip=${rip}`);
+      cmd.push(`lip=${lip}`);
+      if (params.hasOwnProperty("nologin") && params.nologin === true) {
+        cmd.push("nologin");
+      }
+      if (params.hasOwnProperty("secured") && params.secured === true) {
+        cmd.push("secured");
+      }
+      cmd.push(`resp=${token}`);
+      client.write(`${cmd.join("\t")}\n`);
     } else {
       client.destroy();
       return callback(`Unsupported ${params.type} metod`);
